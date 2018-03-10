@@ -44,13 +44,13 @@ def plugin_unloaded():
 @events.on(events.LINT_RESULT)
 def on_lint_result(buffer_id, **kwargs):
     for window in sublime.windows():
-        if window.find_output_panel(PANEL_NAME) and buffer_id in buffer_ids_per_window(window):
+        if has_panel(window) and buffer_id in buffer_ids_per_window(window):
             fill_panel(window)
 
 
 class UpdateState(sublime_plugin.EventListener):
     def on_activated_async(self, active_view):
-        if not has_panel(active_view):
+        if not has_panel(view.window()):
             return
 
         State.update({
@@ -59,8 +59,8 @@ class UpdateState(sublime_plugin.EventListener):
         })
         update_panel_selection(**State)
 
-    def on_selection_modified_async(self, _primary_view_):
-        if not has_panel(_primary_view_):
+    def on_selection_modified_async(self, view):
+        if not has_panel(view.window()):
             return
 
         active_view = State['active_view']
@@ -72,7 +72,7 @@ class UpdateState(sublime_plugin.EventListener):
             update_panel_selection(**State)
 
     def on_pre_close(self, view):
-        if not has_panel(view):
+        if not has_panel(view.window()):
             return
 
         window = view.window()
@@ -180,8 +180,7 @@ def buffer_ids_per_window(window):
 
 # panel life cycle
 
-def has_panel(view):
-    window = view.window()
+def has_panel(window):
     if not window:
         return False
 
