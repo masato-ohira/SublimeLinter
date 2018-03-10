@@ -122,12 +122,8 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
         Pass show=False for hiding.
         """
         if show:
-            cmd = "show_panel"
+            self.window.run_command("show_panel", {"panel": "output." + PANEL_NAME})
         else:
-            cmd = "hide_panel"
-
-        self.window.run_command(cmd, {"panel": "output." + PANEL_NAME})
-        if not show:
             self.window.destroy_output_panel(PANEL_NAME)
 
 
