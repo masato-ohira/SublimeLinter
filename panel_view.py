@@ -127,6 +127,8 @@ class SublimeLinterPanelToggleCommand(sublime_plugin.WindowCommand):
             cmd = "hide_panel"
 
         self.window.run_command(cmd, {"panel": "output." + name or ""})
+        if not show:
+            self.window.destroy_output_panel(PANEL_NAME)
 
 
 class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
