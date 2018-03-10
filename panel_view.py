@@ -24,7 +24,7 @@ OUTPUT_PANEL_SETTINGS = {
 
 State = {
     'active_view': None,
-    'current_pos': (-1, -1)
+    'current_pos': (0, 0)
 }
 
 
