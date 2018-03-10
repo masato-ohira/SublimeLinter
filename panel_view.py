@@ -63,10 +63,10 @@ class UpdateState(sublime_plugin.EventListener):
         if not panel_is_active(view.window()):
             return
 
-        active_view = State['active_view']
-        current_pos = get_current_pos(active_view)
+        current_pos = get_current_pos(view)
         if current_pos != State['current_pos']:
             State.update({
+                'active_view': view,
                 'current_pos': current_pos
             })
             update_panel_selection(**State)
