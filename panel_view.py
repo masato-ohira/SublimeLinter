@@ -151,9 +151,15 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
 
 
 def has_panel(view):
-    if view.window():
-        return view.window().find_output_panel(PANEL_NAME)
+    window = view.window()
+    if not window:
+        return False
+
+    if window.active_panel() == "output." + PANEL_NAME:
+        return True
     else:
+        if window.find_output_panel(PANEL_NAME):
+            window.destroy_output_panel(PANEL_NAME)
         return False
 
 
