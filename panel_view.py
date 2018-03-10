@@ -151,6 +151,35 @@ class SublimeLinterUpdatePanelCommand(sublime_plugin.TextCommand):
         sel.add(0)
 
 
+def get_current_pos(view):
+    try:
+        return view.rowcol(view.sel()[0].begin())
+    except (AttributeError, IndexError):
+        return -1, -1
+
+
+def sort_errors(errors):
+    return sorted(
+        errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
+
+
+def get_window_errors(window, all_errors):
+    bid_error_pairs = (
+        (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
+    )
+    return {
+        bid: sort_errors(errors)
+        for bid, errors in bid_error_pairs
+        if errors
+    }
+
+
+def buffer_ids_per_window(window):
+    return {v.buffer_id() for v in window.views()}
+
+
+# panel life cycle
+
 def has_panel(view):
     window = view.window()
     if not window:
@@ -162,53 +191,6 @@ def has_panel(view):
         if window.find_output_panel(PANEL_NAME):
             window.destroy_output_panel(PANEL_NAME)
         return False
-
-
-def get_current_pos(view):
-    try:
-        return view.rowcol(view.sel()[0].begin())
-    except (AttributeError, IndexError):
-        return -1, -1
-
-
-def get_common_parent(paths):
-    """Get the common parent directory of multiple absolute file paths."""
-    common_path = os.path.commonprefix(paths)
-    return os.path.dirname(common_path)
-
-
-def get_filenames(window, bids):
-    """
-    Return dict of buffer_id: file_name for all views in window.
-
-    Assign a substitute name to untitled buffers: <untitled buffer_id>
-    """
-    return {
-        v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
-        for v in window.views()
-        if v.buffer_id() in bids
-    }
-
-
-def create_path_dict(window, bids):
-    file_names_by_bid = get_filenames(window, bids)
-
-    base_dir = get_common_parent([
-        path
-        for path in file_names_by_bid.values()
-        if not path.startswith('<untitled')
-    ])
-
-    rel_paths = {
-        bid: (
-            abs_path
-            if abs_path.startswith('<untitled')
-            else os.path.relpath(abs_path, base_dir)
-        )
-        for bid, abs_path in file_names_by_bid.items()
-    }
-
-    return rel_paths, base_dir
 
 
 def create_panel(window):
@@ -239,25 +221,7 @@ def ensure_panel(window: sublime.Window):
     return get_panel(window) or create_panel(window)
 
 
-def sort_errors(errors):
-    return sorted(
-        errors, key=lambda e: (e["line"], e["start"], e["end"], e["linter"]))
-
-
-def get_window_errors(window, all_errors):
-    bid_error_pairs = (
-        (bid, all_errors[bid]) for bid in buffer_ids_per_window(window)
-    )
-    return {
-        bid: sort_errors(errors)
-        for bid, errors in bid_error_pairs
-        if errors
-    }
-
-
-def buffer_ids_per_window(window):
-    return {v.buffer_id() for v in window.views()}
-
+# format contents and put it in the panel
 
 def format_header(f_path):
     return "{}:".format(f_path)
@@ -311,6 +275,48 @@ def fill_panel(window, update=False):
 
     if State['active_view'].window() == window:
         update_panel_selection(**State)
+
+
+# logic for formatting file paths
+
+def get_common_parent(paths):
+    """Get the common parent directory of multiple absolute file paths."""
+    common_path = os.path.commonprefix(paths)
+    return os.path.dirname(common_path)
+
+
+def get_filenames(window, bids):
+    """
+    Return dict of buffer_id: file_name for all views in window.
+
+    Assign a substitute name to untitled buffers: <untitled buffer_id>
+    """
+    return {
+        v.buffer_id(): v.file_name() or "<untitled {}>".format(v.buffer_id())
+        for v in window.views()
+        if v.buffer_id() in bids
+    }
+
+
+def create_path_dict(window, bids):
+    file_names_by_bid = get_filenames(window, bids)
+
+    base_dir = get_common_parent([
+        path
+        for path in file_names_by_bid.values()
+        if not path.startswith('<untitled')
+    ])
+
+    rel_paths = {
+        bid: (
+            abs_path
+            if abs_path.startswith('<untitled')
+            else os.path.relpath(abs_path, base_dir)
+        )
+        for bid, abs_path in file_names_by_bid.items()
+    }
+
+    return rel_paths, base_dir
 
 
 # logic for updating panel selection
